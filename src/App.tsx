@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/react';
 import { useState, useEffect, useCallback } from 'react';
 import { getMovieSuggestions } from './services/gemini';
 import { getMoviePoster } from './services/tmdb';
@@ -7,9 +8,12 @@ import { MovieCard } from './components/MovieCard';
 import { MovieModal } from './components/MovieModal';
 import { Hero } from "./components/Hero";
 import { PromptSuggestions } from './components/PromptSuggestions';
+import { Footer } from './components/Footer'; 
 import { generateRandomPrompts } from './utils/promptGenerator';
-import type { Movie } from './types';
+import type { Movie } from './types/index';
 import { BookmarkIcon } from '@heroicons/react/24/outline';
+import MoodSelector from "./components/MoodSelector";
+import { getAllWatchlistDB, addToWatchlistDB, removeFromWatchlistDB } from './services/db';
 
 function App() {
   const [query, setQuery] = useState("");
@@ -19,24 +23,36 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [activeTab, setActiveTab] = useState<'search' | 'library'>('search');
   const [watchlist, setWatchlist] = useState<Movie[]>([]);
-  
-  // İlk render'da random promptları oluştur
   const [randomPrompts, setRandomPrompts] = useState(() => generateRandomPrompts());
+  const [allMovieNames, setAllMovieNames] = useState<string[]>([]);
 
-  // 1. Sayfa ilk açıldığında çalışacak ayarlar
   useEffect(() => {
-    const savedWatchlist = localStorage.getItem('watchlist');
-    if (savedWatchlist) setWatchlist(JSON.parse(savedWatchlist));
-    
-    // Sayfa her yenilendiğinde (F5) promptları tazele
-    setRandomPrompts(generateRandomPrompts());
+    const loadWatchlist = async () => {
+      const savedWatchlist = await getAllWatchlistDB();
+      setWatchlist(savedWatchlist);
+    };
+    loadWatchlist();
   }, []);
 
-  // 2. Karanlık mod ve Watchlist değişimlerini takip et
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
-    localStorage.setItem('watchlist', JSON.stringify(watchlist));
-  }, [isDarkMode, watchlist]);
+  }, [isDarkMode]);
+
+  const fetchMovieDetails = async (names: string[]) => {
+    return await Promise.all(
+      names.map(async (name) => {
+        const details = await getMoviePoster(name);
+        return {
+          id: details?.id || name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0),
+          name: name,
+          poster: details?.poster_path || "https://via.placeholder.com/500x750?text=No+Image",
+          vote: details?.vote_average || 0,
+          date: details?.release_date || "N/A",
+          overview: details?.overview || "Özet bulunamadı."
+        } as Movie;
+      })
+    );
+  };
 
   const handleSearch = useCallback(async (searchQuery?: string) => {
     const finalQuery = searchQuery || query;
@@ -44,16 +60,16 @@ function App() {
 
     setLoading(true);
     setMovies([]);
+    setAllMovieNames([]);
     setActiveTab('search');
-    
+
     try {
-      const names = await getMovieSuggestions(finalQuery);
-      const movieData = await Promise.all(
-        names.map(async (name) => {
-          const details = await getMoviePoster(name);
-          return { name, ...details };
-        })
-      );
+      const names = await getMovieSuggestions(`${finalQuery} (en az 50 farklı film öner)`);
+      const uniqueNames = [...new Set(names)];
+      setAllMovieNames(uniqueNames);
+
+      const firstBatch = uniqueNames.slice(0, 5);
+      const movieData = await fetchMovieDetails(firstBatch);
       setMovies(movieData);
     } catch (error) {
       console.error("Arama hatası:", error);
@@ -62,99 +78,117 @@ function App() {
     }
   }, [query, loading]);
 
-  const onPromptSelect = (text: string) => {
-    setQuery(text);
-    handleSearch(text);
+  const handleMore = async () => {
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      if (allMovieNames.length - movies.length <= 5) {
+        const currentTitles = movies.map(m => m.name).slice(-20).join(", ");
+        const moreNames = await getMovieSuggestions(
+          `${query} türünde yeni öneriler yap. Şunları ZATEN ÖNERDİN (bunları yazma): ${currentTitles}. Lütfen 50 farklı isim daha gönder.`
+        );
+        setAllMovieNames(prev => [...new Set([...prev, ...moreNames])]);
+      }
+
+      const nextBatchNames = allMovieNames
+        .filter(name => !movies.some(m => m.name === name))
+        .slice(0, 5);
+
+      if (nextBatchNames.length > 0) {
+        const moreDetails = await fetchMovieDetails(nextBatchNames);
+        setMovies(prev => [...prev, ...moreDetails]);
+      }
+    } catch (error) {
+      console.error("Yükleme hatası:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const refreshPrompts = () => {
-    setRandomPrompts(generateRandomPrompts());
+  const handleToggleWatchlist = async (movie: Movie) => {
+    const exists = watchlist.find(x => x.id === movie.id);
+    if (exists) {
+      await removeFromWatchlistDB(movie.id);
+      setWatchlist(prev => prev.filter(x => x.id !== movie.id));
+    } else {
+      await addToWatchlistDB(movie);
+      setWatchlist(prev => [...prev, movie]);
+    }
+  };
+
+  const handleReset = () => {
+    setMovies([]);
+    setAllMovieNames([]);
+    setQuery("");
+    setActiveTab('search');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-700 ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'}`}>
-      <Navbar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className={`flex flex-col min-h-screen transition-colors duration-700 ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'}`}>
+      <Navbar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} activeTab={activeTab} setActiveTab={setActiveTab} onReset={handleReset} />
       
-      {/* Arka plan ışık efekti */}
-      <div className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[120px] -z-10 pointer-events-none transition-colors duration-1000 ${isDarkMode ? 'bg-indigo-600/10' : 'bg-indigo-500/5'}`} />
-
-      <main className="pt-32 pb-20 max-w-7xl mx-auto px-6">
+      <main className="flex-grow pt-32 pb-20 max-w-7xl mx-auto px-6 w-full">
         {activeTab === 'search' ? (
           <>
-            {/* Arama sonuçları yoksa Hero ve Önerileri göster */}
+            {movies.length === 0 && !loading && <Hero isDarkMode={isDarkMode} />}
+            <SearchBar query={query} setQuery={setQuery} onSearch={() => handleSearch()} loading={loading} isDarkMode={isDarkMode} />
+
             {movies.length === 0 && !loading && (
-              <div className="animate-in fade-in slide-in-from-top-4 duration-1000">
-                <Hero isDarkMode={isDarkMode} />
+              <>
+                <MoodSelector isVisible={true} isDarkMode={isDarkMode} onMoodSearch={(text) => { setQuery(text); handleSearch(text); }} />
+                <PromptSuggestions prompts={randomPrompts} onRefresh={() => setRandomPrompts(generateRandomPrompts())} onSelect={(text) => { setQuery(text); handleSearch(text); }} isDarkMode={isDarkMode} />
+              </>
+            )}
+
+            {(movies.length > 0 || loading) && (
+              <div className="mt-12">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
+                  {movies.map((m) => (
+                    <MovieCard key={m.id} movie={m} onClick={() => setSelectedMovie(m)} isDarkMode={isDarkMode} />
+                  ))}
+                  {loading && Array.from({ length: 5 }).map((_, i) => (
+                    <div key={`skeleton-${i}`} className={`aspect-[2/3] rounded-[2.5rem] animate-pulse ${isDarkMode ? 'bg-slate-900' : 'bg-slate-200'}`} />
+                  ))}
+                </div>
+
+                {movies.length > 0 && (
+                  <div className="flex justify-center mt-12 mb-20">
+                    <button
+                      onClick={handleMore}
+                      disabled={loading}
+                      className="px-10 py-4 rounded-2xl font-black tracking-[0.3em] 
+                      uppercase text-[11px] transition-all border-2 bg-transparent 
+                      border-indigo-600/50 text-indigo-500 hover:border-indigo-600 hover:text-indigo-600 disabled:opacity-50 shadow-xl shadow-indigo-500/10 active:scale-95"
+                    >
+                      {loading ? "Yeni Öneriler Hazırlanıyor..." : "Daha Fazla Öner"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-
-            <SearchBar 
-              query={query} 
-              setQuery={setQuery} 
-              onSearch={() => handleSearch()} 
-              loading={loading} 
-              isDarkMode={isDarkMode} 
-            />
-
-            {movies.length === 0 && !loading && (
-              <PromptSuggestions 
-                prompts={randomPrompts} 
-                onRefresh={refreshPrompts}
-                onSelect={onPromptSelect}
-                isDarkMode={isDarkMode}
-              />
-            )}
-
-            {/* Film Izgarası */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-              {loading 
-                ? Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className={`aspect-[2/3] rounded-[2.5rem] animate-pulse ${isDarkMode ? 'bg-slate-900' : 'bg-slate-200'}`} />
-                  ))
-                : movies.map((m, i) => (
-                    <MovieCard key={i} movie={m} onClick={() => setSelectedMovie(m)} isDarkMode={isDarkMode} />
-                  ))
-              }
-            </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-32 animate-in fade-in zoom-in duration-1000">
-            <div className="relative mb-8">
-              <div className="absolute inset-0 bg-indigo-500 blur-3xl opacity-20 animate-pulse"></div>
-              <BookmarkIcon className={`w-20 h-20 relative z-10 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-            </div>
-            
-            <h2 className={`text-4xl font-black mb-4 tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              Koleksiyon Özelliği <span className="text-indigo-500">Çok Yakında</span>
-            </h2>
-            
-            <p className="text-slate-500 text-lg max-w-md text-center font-medium leading-relaxed">
-              Kendi film listelerini oluşturma ve favorilerini kaydetme özelliği şu an geliştirme aşamasında.
-            </p>
-            
-            <div className="mt-10 flex gap-3">
-              <div className="h-1.5 w-12 bg-indigo-500 rounded-full"></div>
-              <div className="h-1.5 w-3 bg-indigo-500/30 rounded-full"></div>
-              <div className="h-1.5 w-3 bg-indigo-500/30 rounded-full"></div>
-            </div>
+          <div className="flex flex-col items-center justify-center py-32 animate-in fade-in zoom-in duration-700">
+            <BookmarkIcon className={`w-16 h-16 mb-6 opacity-20 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
+            <h2 className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Koleksiyon Çok Yakında</h2>
+            <p className="text-slate-500 text-sm mt-2 font-medium">Favori filmlerin burada listelenecek.</p>
           </div>
         )}
       </main>
 
-      {/* Film Detay Modalı */}
+      <Footer isDarkMode={isDarkMode} />
       {selectedMovie && (
         <MovieModal 
           movie={selectedMovie} 
           onClose={() => setSelectedMovie(null)} 
           isDarkMode={isDarkMode} 
-          onToggleWatchlist={(m) => {
-            const exists = watchlist.find(x => x.name === m.name);
-            if (exists) setWatchlist(watchlist.filter(x => x.name !== m.name));
-            else setWatchlist([...watchlist, m]);
-          }}
-          isInWatchlist={!!watchlist.find(m => m.name === selectedMovie.name)}
+          onToggleWatchlist={handleToggleWatchlist} 
+          isInWatchlist={!!watchlist.find(m => m.id === selectedMovie.id)} 
         />
       )}
+      <Analytics />
     </div>
   );
 }

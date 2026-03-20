@@ -1,37 +1,35 @@
-# CineMatch AI
+# 🎬 CineMatch AI v2.0
 
-Yapay zeka desteği ile kullanıcıların doğal dil tanımlamalarına göre kişiselleştirilmiş film önerileri sunan modern bir web uygulamasıdır.
+CineMatch AI, geleneksel film arama motorlarının ötesine geçerek, o anki ruh halinizi ve spesifik betimlemelerinizi anlayan **AI tabanlı** bir film keşif platformudur. Google Gemini AI'ın zekasını, TMDB'nin devasa veri kütüphanesiyle birleştirir.
 
-**Canlı Demo:** [cine-match-ai-taupe.vercel.app](https://cine-match-ai-taupe.vercel.app/)
+**🚀 Canlı Demo:** [cine-match-ai-taupe.vercel.app](https://cine-match-ai-taupe.vercel.app/)
 
-## Proje Hakkında
+---
 
-CineMatch AI, geleneksel kategori bazlı filtreleme yöntemlerinin ötesine geçerek, kullanıcının o anki ruh halini veya spesifik betimlemelerini analiz eder. Google Gemini AI altyapısını kullanarak kullanıcı girdilerini anlamlandırır ve TMDB veri tabanı üzerinden en doğru eşleşmeleri görselleştirir.
+## ✨ Öne Çıkan Yeni Özellikler
 
-## Teknik Özellikler
+* 🧠 **Sonsuz AI Önerisi (Infinite Suggestion):** "Daha Fazla Öner" butonu ile Gemini'den her seferinde taze isimler çekerek, tekrara düşmeyen sonsuz bir film akışı sağlar.
+* 💾 **Kişisel Koleksiyon (Watchlist):** **IndexedDB** entegrasyonu sayesinde beğendiğiniz filmleri tarayıcı hafızasına kaydeder, sayfa yenilense bile verilerinizi korur.
+* 🎭 **Mood Selector:** "Neşeli", "Düşündürücü" veya "Gerilim" gibi ruh hallerine göre optimize edilmiş tek tıkla arama motoru.
+* 🌗 **Dinamik Dark/Light Mode:** Tailwind CSS v4 tabanlı, sistem tercihlerine duyarlı veya manuel kontrol edilebilir modern arayüz.
+* ⚡ **Hız ve Optimizasyon:** Görüntü lazy-loading ve skeleton screen (yükleme efektleri) ile düşük internet hızlarında bile akıcı deneyim.
 
-* **Doğal Dil İşleme:** Google Gemini 1.5 Flash modeli entegrasyonu ile karmaşık kullanıcı isteklerini film isimlerine dönüştürür.
-* **Dinamik Ver Veri Entegrasyonu:** TMDB API aracılığıyla gerçek zamanlı film afişleri, özet bilgiler ve puanlamalar sunar.
-* **Modüler Mimari:** React bileşen tabanlı yapı (Component-based architecture) ile sürdürülebilir ve ölçeklenebilir kod yapısı.
-* **Gelişmiş CSS Animasyonları:** 3D Flip Card efektleri ve modern kullanıcı etkileşimleri.
-* **Dinamik Tema Yönetimi:** Sistem tercihlerine duyarlı veya manuel olarak değiştirilebilen Dark/Light mode desteği.
-* **Hızlı Derleme:** Vite yapılandırması ile optimize edilmiş çalışma zamanı performansı.
+## 🛠️ Teknik Stack
 
-## Kullanılan Teknolojiler
+* **Core:** React 18, TypeScript, Vite
+* **Styling:** Tailwind CSS v4 (Midnight-Indigo Design System)
+* **AI Engine:** Google Gemini SDK (Gemini-3-Flash-Preview)
+* **Database:** IndexedDB (Local persistence for watchlist)
+* **Icons:** Heroicons (Outline & Solid)
+* **Deployment:** Vercel + Vercel Analytics
 
-* **Frontend:** React 18, TypeScript
-* **Stil:** Tailwind CSS v4 (Midnight-Indigo Tasarım Sistemi)
-* **Yapay Zeka:** Google Gemini Generative AI SDK
-* **API:** The Movie Database (TMDB) API
-* **İkon Seti:** Heroicons (Outline)
-* **Dağıtım:** Vercel
-
-## Klasör Yapısı
+## 📂 Proje Yapısı
 
 ```text
 src/
-├── components/       # UI Bileşenleri (Navbar, SearchBar, MovieCard vb.)
-├── services/         # API Servisleri (Gemini ve TMDB yapılandırmaları)
-├── utils/            # Yardımcı Fonksiyonlar (Prompt Generator)
+├── components/       # UI Bileşenleri (Navbar, SearchBar, MoodSelector, Footer vb.)
+├── services/         # API & DB Mantığı (Gemini, TMDB ve IndexedDB servisleri)
+├── utils/            # Yardımcılar (Prompt Generator, ID Creator vb.)
 ├── types/            # TypeScript Interface ve Tip tanımlamaları
-└── App.tsx           # Ana uygulama mantığı ve state yönetimi
+├── assets/           # Statik dosyalar
+└── App.tsx           # Ana uygulama mimarisi ve State yönetimi
