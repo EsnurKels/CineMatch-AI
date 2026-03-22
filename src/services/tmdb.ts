@@ -53,3 +53,17 @@ export const getMoviePoster = async (movieName: string) => {
     return null;
   }
 };
+
+export const getMovieWatchProviders = async (movieId: number) => {
+  try {
+    const response = await fetch(
+      `https://api.themoviedb.org/3/movie/${movieId}/watch/providers?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
+    );
+    const data = await response.json();
+    // Türkiye (TR) verilerini çekiyoruz
+    return data.results?.TR || null;
+  } catch (error) {
+    console.error("Platform bilgisi çekilemedi:", error);
+    return null;
+  }
+};

@@ -5,30 +5,35 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 export const getMovieSuggestions = async (userPrompt: string) => {
   try {
-    // Get Code'da gördüğün model ismini buraya tam olarak yazıyoruz
-    // Eğer 'gemini-3-flash-preview' hata verirse 'gemini-1.5-flash' olarak kalsın
     const model = genAI.getGenerativeModel({ 
       model: "gemini-3-flash-preview" 
     });
 
-    const systemInstruction = `Sen profesyonel bir film uzmanısın. 
-      Kullanıcının isteğine göre film isimleri öner.
-      Eğer kullanıcı özel bir sayı belirtmemişse varsayılan olarak 10 film öner.
-      Eğer kullanıcı "20 tane", "3 film", "100 adet" gibi bir sayı belirtirse tam olarak o sayıda film öner.
-      Yanıtını SADECE film isimleri arasında virgül olacak şekilde ver. 
-      Örnek: Inception, Interstellar, Titanic
-      Asla başka bir metin yazma.`;
+    const systemInstruction = `
+      Sen profesyonel bir film uzmanı ve küratörüsün. Kullanıcının isteğine göre SADECE film isimleri öner.
 
-    // Yeni mimaride prompt gönderimi
-    const result = await model.generateContent(`${systemInstruction}\n\nİstek: ${userPrompt}`);
+      KRİTİK KURALLAR:
+      1. Yanıtını SADECE film isimleri arasında virgül olacak şekilde ver (Örn: Inception, Interstellar, Titanic). Asla numara, açıklama veya giriş cümlesi yazma.
+      2. Eğer kullanıcı bir "SERİ" veya "SET" (örn: Aslan Kral serisi) istiyorsa, SADECE o seriye ait filmleri getir. Alakasız yan filmleri ekleme.
+      3. Eğer kullanıcı spesifik bir sayı belirttiyse (örn: 3 tane, 5 film, 20 adet) TAM OLARAK o sayıda film öner.
+      4. Eğer kullanıcı bir sayı belirtmediyse ve genel bir keşif istiyorsa, varsayılan olarak en az 50 film ismi gönder.
+      5. "Daha fazla" isteklerinde, kullanıcının daha önce gördüğü filmleri tekrar etme.
+
+      İstek: ${userPrompt}
+    `;
+
+    const result = await model.generateContent(systemInstruction);
     const response = await result.response;
     const text = response.text();
     
-    console.log("Gemini'den taze yanıt:", text);
-    return text.split(",").map(name => name.trim());
+    console.log("Gemini'den gelen ham yanıt:", text);
+    
+    return text.split(",")
+      .map(name => name.trim())
+      .filter(name => name.length > 0);
+
   } catch (error: any) {
     console.error("Gemini Bağlantı Hatası:", error.message);
-    // Hata durumunda hala o 5 yedek filmi dönüyoruz ki sistem çökmesin
     return ["Inception", "Interstellar", "The Dark Knight", "The Matrix", "Gladiator"];
   }
 };

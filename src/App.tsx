@@ -8,7 +8,7 @@ import { MovieCard } from './components/MovieCard';
 import { MovieModal } from './components/MovieModal';
 import { Hero } from "./components/Hero";
 import { PromptSuggestions } from './components/PromptSuggestions';
-import { Footer } from './components/Footer'; 
+import { Footer } from './components/Footer';
 import { generateRandomPrompts } from './utils/promptGenerator';
 import type { Movie } from './types/index';
 import { BookmarkIcon } from '@heroicons/react/24/outline';
@@ -64,20 +64,16 @@ function App() {
     setActiveTab('search');
 
     try {
-      // 1. ADIM: Gelişmiş Prompt ile isimleri çekiyoruz
-      const names = await getMovieSuggestions(
-        `Kullanıcı isteği: "${finalQuery}". 
-         Eğer kullanıcı spesifik bir sayı belirttiyse (örn: 3 tane, 5 film) SADECE o kadar film öner. 
-         Eğer bir sayı belirtmediyse, genel bir öneri istiyorsa en az 40-50 tane öner.`
-      );
-      
+      // Sadece kullanıcı cümlesini gönderiyoruz, gerisini gemini.ts hallediyor
+      const names = await getMovieSuggestions(finalQuery);
+
       const uniqueNames = [...new Set(names)];
       setAllMovieNames(uniqueNames);
 
-      // 2. ADIM: Eğer 3 tane istediyse 3 tane göster, fazla istediyse ilk 5'i göster
+      // İlk gösterim: Eğer 3 tane geldiyse 3 tane, çok geldiyse ilk 5 tanesini çek
       const initialShowCount = uniqueNames.length < 5 ? uniqueNames.length : 5;
       const firstBatch = uniqueNames.slice(0, initialShowCount);
-      
+
       const movieData = await fetchMovieDetails(firstBatch);
       setMovies(movieData);
     } catch (error) {
@@ -92,11 +88,10 @@ function App() {
     setLoading(true);
 
     try {
-      // Liste bitmek üzereyse takviye al (Sonsuz döngü)
       if (allMovieNames.length - movies.length <= 5) {
         const currentTitles = movies.map(m => m.name).slice(-20).join(", ");
         const moreNames = await getMovieSuggestions(
-          `${query} türünde yeni öneriler yap. Şunları ZATEN ÖNERDİN: ${currentTitles}. Lütfen 50 farklı isim daha gönder.`
+          `${query} türünde yeni öneriler. (Şunları ZATEN ÖNERDİN: ${currentTitles})`
         );
         setAllMovieNames(prev => [...new Set([...prev, ...moreNames])]);
       }
@@ -138,7 +133,7 @@ function App() {
   return (
     <div className={`flex flex-col min-h-screen transition-colors duration-700 ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'}`}>
       <Navbar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} activeTab={activeTab} setActiveTab={setActiveTab} onReset={handleReset} />
-      
+
       <main className="flex-grow pt-32 pb-20 max-w-7xl mx-auto px-6 w-full">
         {activeTab === 'search' ? (
           <>
@@ -189,12 +184,12 @@ function App() {
 
       <Footer isDarkMode={isDarkMode} />
       {selectedMovie && (
-        <MovieModal 
-          movie={selectedMovie} 
-          onClose={() => setSelectedMovie(null)} 
-          isDarkMode={isDarkMode} 
-          onToggleWatchlist={handleToggleWatchlist} 
-          isInWatchlist={!!watchlist.find(m => m.id === selectedMovie.id)} 
+        <MovieModal
+          movie={selectedMovie}
+          onClose={() => setSelectedMovie(null)}
+          isDarkMode={isDarkMode}
+          onToggleWatchlist={handleToggleWatchlist}
+          isInWatchlist={!!watchlist.find(m => m.id === selectedMovie.id)}
         />
       )}
       <Analytics />

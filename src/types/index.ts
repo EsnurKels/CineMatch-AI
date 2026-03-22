@@ -5,6 +5,7 @@ export interface Movie {
   overview: string;
   vote: number;
   date?: string;
+  watch_link?: string;
 }
 
 export interface Mood {
