@@ -22,7 +22,11 @@ export const SearchBar = ({ query, setQuery, onSearch, loading, isDarkMode }: Se
       </div>
 
       <input 
-        className={`flex-1 p-4 md:p-6 bg-transparent outline-none text-base md:text-lg min-w-0 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
+        className={`flex-1 p-4 md:p-6 bg-transparent outline-none text-base md:text-lg min-w-0 transition-colors duration-300
+          ${isDarkMode 
+            ? 'text-white placeholder:text-slate-500' 
+            : 'text-slate-900 placeholder:text-slate-400'
+          }`}
         placeholder={window.innerWidth < 640 ? "Film isteğini anlat..." : "AI'ya nasıl bir film istediğini anlat..."}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
