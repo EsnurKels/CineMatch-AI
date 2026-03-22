@@ -64,11 +64,20 @@ function App() {
     setActiveTab('search');
 
     try {
-      const names = await getMovieSuggestions(`${finalQuery} (en az 50 farklı film öner)`);
+      // 1. ADIM: Gelişmiş Prompt ile isimleri çekiyoruz
+      const names = await getMovieSuggestions(
+        `Kullanıcı isteği: "${finalQuery}". 
+         Eğer kullanıcı spesifik bir sayı belirttiyse (örn: 3 tane, 5 film) SADECE o kadar film öner. 
+         Eğer bir sayı belirtmediyse, genel bir öneri istiyorsa en az 40-50 tane öner.`
+      );
+      
       const uniqueNames = [...new Set(names)];
       setAllMovieNames(uniqueNames);
 
-      const firstBatch = uniqueNames.slice(0, 5);
+      // 2. ADIM: Eğer 3 tane istediyse 3 tane göster, fazla istediyse ilk 5'i göster
+      const initialShowCount = uniqueNames.length < 5 ? uniqueNames.length : 5;
+      const firstBatch = uniqueNames.slice(0, initialShowCount);
+      
       const movieData = await fetchMovieDetails(firstBatch);
       setMovies(movieData);
     } catch (error) {
@@ -79,14 +88,15 @@ function App() {
   }, [query, loading]);
 
   const handleMore = async () => {
-    if (loading) return;
+    if (loading || allMovieNames.length <= movies.length) return;
     setLoading(true);
 
     try {
+      // Liste bitmek üzereyse takviye al (Sonsuz döngü)
       if (allMovieNames.length - movies.length <= 5) {
         const currentTitles = movies.map(m => m.name).slice(-20).join(", ");
         const moreNames = await getMovieSuggestions(
-          `${query} türünde yeni öneriler yap. Şunları ZATEN ÖNERDİN (bunları yazma): ${currentTitles}. Lütfen 50 farklı isim daha gönder.`
+          `${query} türünde yeni öneriler yap. Şunları ZATEN ÖNERDİN: ${currentTitles}. Lütfen 50 farklı isim daha gönder.`
         );
         setAllMovieNames(prev => [...new Set([...prev, ...moreNames])]);
       }
@@ -153,16 +163,15 @@ function App() {
                   ))}
                 </div>
 
-                {movies.length > 0 && (
+                {/* Buton Zekası: Sadece daha fazla film varsa ve kullanıcı kısıtlı bir sayı istemediyse göster */}
+                {allMovieNames.length > movies.length && (
                   <div className="flex justify-center mt-12 mb-20">
                     <button
                       onClick={handleMore}
                       disabled={loading}
-                      className="px-10 py-4 rounded-2xl font-black tracking-[0.3em] 
-                      uppercase text-[11px] transition-all border-2 bg-transparent 
-                      border-indigo-600/50 text-indigo-500 hover:border-indigo-600 hover:text-indigo-600 disabled:opacity-50 shadow-xl shadow-indigo-500/10 active:scale-95"
+                      className="px-10 py-4 rounded-2xl font-black tracking-[0.3em] uppercase text-[11px] transition-all border-2 bg-transparent border-indigo-600/50 text-indigo-500 hover:border-indigo-600 hover:text-indigo-600 disabled:opacity-50 shadow-xl shadow-indigo-500/10 active:scale-95"
                     >
-                      {loading ? "Yeni Öneriler Hazırlanıyor..." : "Daha Fazla Öner"}
+                      {loading ? "Sıradakiler Hazırlanıyor..." : "Daha Fazla Öner"}
                     </button>
                   </div>
                 )}
@@ -170,7 +179,7 @@ function App() {
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-32 animate-in fade-in zoom-in duration-700">
+          <div className="flex flex-col items-center justify-center py-32">
             <BookmarkIcon className={`w-16 h-16 mb-6 opacity-20 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
             <h2 className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Koleksiyon Çok Yakında</h2>
             <p className="text-slate-500 text-sm mt-2 font-medium">Favori filmlerin burada listelenecek.</p>

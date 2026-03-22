@@ -10,4 +10,21 @@
   .backface-hidden {
     backface-visibility: hidden;
   }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px; /* Daha ince bir yapı */
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent; /* Arka plan görünmez */
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(79, 70, 229, 0.2); /* Çok hafif mor (indigo-600/20) */
+    border-radius: 20px;
+    transition: all 0.3s;
+  }
+
+  .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: rgba(79, 70, 229, 0.5); /* Mouse üzerine gelince daha belirgin mor */
+  }
 }
