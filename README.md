@@ -1,35 +1,31 @@
-# 🎬 CineMatch AI v2.0
+# 🎬 CineMatch - AI Movie Assistant
 
-CineMatch AI, geleneksel film arama motorlarının ötesine geçerek, o anki ruh halinizi ve spesifik betimlemelerinizi anlayan **AI tabanlı** bir film keşif platformudur. Google Gemini AI'ın zekasını, TMDB'nin devasa veri kütüphanesiyle birleştirir.
+CineMatch, Google Gemini AI teknolojisini kullanarak kullanıcıların moduna ve tercihlerine göre kişiselleştirilmiş film önerileri sunan modern bir web uygulamasıdır. Sadece bir öneri motoru değil, aynı zamanda kişisel film kütüphanenizi yönetebileceğiniz akıllı bir asistanıdır.
 
-**🚀 Canlı Demo:** [cine-match-ai-taupe.vercel.app](https://cine-match-ai-taupe.vercel.app/)
+![CineMatch Preview](https://via.placeholder.com/1200x600?text=CineMatch+AI+Preview)
 
----
+## ✨ Öne Çıkan Özellikler
 
-## ✨ Öne Çıkan Yeni Özellikler
-
-* 🧠 **Sonsuz AI Önerisi (Infinite Suggestion):** "Daha Fazla Öner" butonu ile Gemini'den her seferinde taze isimler çekerek, tekrara düşmeyen sonsuz bir film akışı sağlar.
-* 💾 **Kişisel Koleksiyon (Watchlist):** **IndexedDB** entegrasyonu sayesinde beğendiğiniz filmleri tarayıcı hafızasına kaydeder, sayfa yenilense bile verilerinizi korur.
-* 🎭 **Mood Selector:** "Neşeli", "Düşündürücü" veya "Gerilim" gibi ruh hallerine göre optimize edilmiş tek tıkla arama motoru.
-* 🌗 **Dinamik Dark/Light Mode:** Tailwind CSS v4 tabanlı, sistem tercihlerine duyarlı veya manuel kontrol edilebilir modern arayüz.
-* ⚡ **Hız ve Optimizasyon:** Görüntü lazy-loading ve skeleton screen (yükleme efektleri) ile düşük internet hızlarında bile akıcı deneyim.
+* **🤖 AI Destekli Öneriler:** Google Gemini API ile doğal dildeki isteklerinize (örn: "Yağmurlu bir günde izlenecek gizemli filmler") anlamlı cevaplar.
+* **📚 Gelişmiş Kitaplık Sistemi:** IndexedDB altyapısı ile tarayıcı tabanlı kalıcı veri saklama.
+    * **İzleyeceklerim:** Sonra izlemek için kaydedilen filmler.
+    * **İzlediklerim:** Bitirdiğiniz filmlerin dijital arşivi.
+* **🔍 Akıllı Filtreleme:** Arama sonuçlarında "İzlediklerimi Gizle" seçeneği ile sadece yeni keşiflere odaklanma.
+* **📽️ Zengin Film Detayları:** TMDB API entegrasyonu ile yüksek kaliteli posterler, puanlar, özetler ve izleme platformları (Netflix, Disney+, vb.).
+* **🌓 Modern UI/UX:** Tailwind CSS ile oluşturulmuş, tamamen responsive ve Dark Mode uyumlu premium tasarım.
 
 ## 🛠️ Teknik Stack
 
-* **Core:** React 18, TypeScript, Vite
-* **Styling:** Tailwind CSS v4 (Midnight-Indigo Design System)
-* **AI Engine:** Google Gemini SDK (Gemini-3-Flash-Preview)
-* **Database:** IndexedDB (Local persistence for watchlist)
-* **Icons:** Heroicons (Outline & Solid)
-* **Deployment:** Vercel + Vercel Analytics
+- **Framework:** React 18 + Vite
+- **Dil:** TypeScript
+- **AI:** Google Gemini 1.5 Flash
+- **Veritabanı:** IndexedDB (Browser Storage)
+- **Styling:** Tailwind CSS + Headless UI
+- **Icons:** HeroIcons
+- **Deployment:** Vercel
 
-## 📂 Proje Yapısı
+## 🚀 Kurulum
 
-```text
-src/
-├── components/       # UI Bileşenleri (Navbar, SearchBar, MoodSelector, Footer vb.)
-├── services/         # API & DB Mantığı (Gemini, TMDB ve IndexedDB servisleri)
-├── utils/            # Yardımcılar (Prompt Generator, ID Creator vb.)
-├── types/            # TypeScript Interface ve Tip tanımlamaları
-├── assets/           # Statik dosyalar
-└── App.tsx           # Ana uygulama mimarisi ve State yönetimi
+1. Projeyi klonlayın:
+   ```bash
+   git clone [https://github.com/kullaniciadi/cinematch.git](https://github.com/kullaniciadi/cinematch.git)
