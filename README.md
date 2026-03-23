@@ -2,7 +2,7 @@
 
 CineMatch, Google Gemini AI teknolojisini kullanarak kullanıcıların moduna ve tercihlerine göre kişiselleştirilmiş film önerileri sunan modern bir web uygulamasıdır. Sadece bir öneri motoru değil, aynı zamanda kişisel film kütüphanenizi yönetebileceğiniz akıllı bir asistanıdır.
 
-![CineMatch Preview](https://via.placeholder.com/1200x600?text=CineMatch+AI+Preview)
+**🚀 Canlı Demo:** [cine-match-ai-taupe.vercel.app](https://cine-match-ai-taupe.vercel.app/)
 
 ## ✨ Öne Çıkan Özellikler
 
