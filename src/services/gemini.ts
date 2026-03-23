@@ -32,8 +32,9 @@ export const getMovieSuggestions = async (userPrompt: string) => {
       .map(name => name.trim())
       .filter(name => name.length > 0);
 
-  } catch (error: any) {
-    console.error("Gemini Bağlantı Hatası:", error.message);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Bilinmeyen hata";
+    console.error("Gemini Bağlantı Hatası:", errorMessage);
     return ["Inception", "Interstellar", "The Dark Knight", "The Matrix", "Gladiator"];
   }
 };

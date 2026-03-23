@@ -14,3 +14,20 @@ export interface Mood {
   emoji: string;
   searchQuery: string;
 }
+
+export interface WatchProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+  link?: string;
+}
+
+export interface WatchProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+}
+
+export interface WatchProvidersResponse {
+  flatrate?: WatchProvider[];
+}
