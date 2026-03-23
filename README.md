@@ -23,9 +23,3 @@ CineMatch, Google Gemini AI teknolojisini kullanarak kullanıcıların moduna ve
 - **Styling:** Tailwind CSS + Headless UI
 - **Icons:** HeroIcons
 - **Deployment:** Vercel
-
-## 🚀 Kurulum
-
-1. Projeyi klonlayın:
-   ```bash
-   git clone [https://github.com/kullaniciadi/cinematch.git](https://github.com/kullaniciadi/cinematch.git)
