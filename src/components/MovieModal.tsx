@@ -1,17 +1,26 @@
 import { useState, useEffect } from "react";
 import type { Movie, WatchProvider } from '../types';
-import { XMarkIcon, PlusIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CheckIcon, BookmarkIcon, CheckCircleIcon } from '@heroicons/react/24/outline'; // Yeni ikonlar
 import { getMovieWatchProviders } from '../services/tmdb';
 
+// Arayüzü App.tsx'ten gelen yeni props'lara göre güncelledik (Hatanın çözümü burası!)
 interface MovieModalProps {
   movie: Movie;
   onClose: () => void;
   isDarkMode: boolean;
-  onToggleWatchlist: (movie: Movie) => void;
+  onToggleLibrary: (movie: Movie, storeName: 'watchlist' | 'watched') => Promise<void>;
   isInWatchlist: boolean;
+  isWatched: boolean;
 }
 
-export const MovieModal = ({ movie, onClose, isDarkMode, onToggleWatchlist, isInWatchlist }: MovieModalProps) => {
+export const MovieModal = ({ 
+  movie, 
+  onClose, 
+  isDarkMode, 
+  onToggleLibrary, 
+  isInWatchlist, 
+  isWatched 
+}: MovieModalProps) => {
   const [platforms, setPlatforms] = useState<WatchProvider[]>([]);
 
   useEffect(() => {
@@ -84,17 +93,13 @@ export const MovieModal = ({ movie, onClose, isDarkMode, onToggleWatchlist, isIn
 
           <div className="flex-shrink-0 mt-auto">
             {platforms.length > 0 && (
-              <div className="mb-8">
-                <p className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase mb-4">ŞİMDİ İZLE</p>
-                <div className="flex flex-wrap gap-4">
+              <div className="mb-6">
+                <p className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase mb-3">ŞİMDİ İZLE</p>
+                <div className="flex flex-wrap gap-3">
                   {platforms.map((p: WatchProvider) => (
                     <div key={p.provider_id} title={p.provider_name} className="group relative">
-                      <div className="w-11 h-11 rounded-xl overflow-hidden border border-white/10 shadow-lg transition-all duration-300">
-                        <img
-                          src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
-                          alt={p.provider_name}
-                          className="w-full h-full object-cover"
-                        />
+                      <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-lg">
+                        <img src={`https://image.tmdb.org/t/p/original${p.logo_path}`} alt={p.provider_name} className="w-full h-full object-cover" />
                       </div>
                     </div>
                   ))}
@@ -102,17 +107,34 @@ export const MovieModal = ({ movie, onClose, isDarkMode, onToggleWatchlist, isIn
               </div>
             )}
 
-            <button
-              onClick={() => onToggleWatchlist(movie)}
-              className={`w-full flex items-center justify-center gap-3 py-5 px-10 rounded-[1.5rem] font-bold transition-all active:scale-95 text-base md:text-lg ${
-                isInWatchlist
-                  ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-xl shadow-indigo-600/20'
-              }`}
-            >
-              {isInWatchlist ? <CheckIcon className="w-6 h-6" /> : <PlusIcon className="w-6 h-6" />}
-              {isInWatchlist ? 'KİTAPLIKTA' : 'KİTAPLIĞA EKLE'}
-            </button>
+            {/* ÇİFT BUTON YAPISI */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* İzleyeceklerim Butonu */}
+              <button
+                onClick={() => onToggleLibrary(movie, 'watchlist')}
+                className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-2xl font-bold transition-all active:scale-95 text-sm ${
+                  isInWatchlist
+                    ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/20'
+                }`}
+              >
+                {isInWatchlist ? <CheckIcon className="w-5 h-5" /> : <BookmarkIcon className="w-5 h-5" />}
+                {isInWatchlist ? 'LİSTEDE' : 'SONRA İZLE'}
+              </button>
+
+              {/* İzlediklerim Butonu */}
+              <button
+                onClick={() => onToggleLibrary(movie, 'watched')}
+                className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-2xl font-bold transition-all active:scale-95 text-sm ${
+                  isWatched
+                    ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-white/5'
+                }`}
+              >
+                {isWatched ? <CheckCircleIcon className="w-5 h-5" /> : <CheckCircleIcon className="w-5 h-5" />}
+                {isWatched ? 'İZLEDİM' : 'İZLEDİKLERİME EKLE'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

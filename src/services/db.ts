@@ -1,8 +1,11 @@
 import type { Movie } from "../types/index"
 
 const DB_NAME = 'CineMatchDB';
-const STORE_NAME = 'watchlist';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Versiyonu 2 yaptık çünkü yeni store ekliyoruz
+const STORES = {
+  WATCHLIST: 'watchlist',
+  WATCHED: 'watched'
+};
 
 export const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -10,8 +13,11 @@ export const initDB = (): Promise<IDBDatabase> => {
 
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' }); // Filmleri TMDB ID'si ile tutacağız
+      if (!db.objectStoreNames.contains(STORES.WATCHLIST)) {
+        db.createObjectStore(STORES.WATCHLIST, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(STORES.WATCHED)) {
+        db.createObjectStore(STORES.WATCHED, { keyPath: 'id' });
       }
     };
 
@@ -20,26 +26,30 @@ export const initDB = (): Promise<IDBDatabase> => {
   });
 };
 
-export const addToWatchlistDB = async (movie: Movie) => {
+export const addToDB = async (movie: Movie, storeName: 'watchlist' | 'watched') => {
   const db = await initDB();
-  const tx = db.transaction(STORE_NAME, 'readwrite');
-  const store = tx.objectStore(STORE_NAME);
+  const tx = db.transaction(storeName, 'readwrite');
+  const store = tx.objectStore(storeName);
   store.put(movie);
-  return tx.oncomplete;
+  return new Promise((resolve) => {
+    tx.oncomplete = () => resolve(true);
+  });
 };
 
-export const removeFromWatchlistDB = async (id: number) => {
+export const removeFromDB = async (id: number, storeName: 'watchlist' | 'watched') => {
   const db = await initDB();
-  const tx = db.transaction(STORE_NAME, 'readwrite');
-  const store = tx.objectStore(STORE_NAME);
+  const tx = db.transaction(storeName, 'readwrite');
+  const store = tx.objectStore(storeName);
   store.delete(id);
-  return tx.oncomplete;
+  return new Promise((resolve) => {
+    tx.oncomplete = () => resolve(true);
+  });
 };
 
-export const getAllWatchlistDB = async (): Promise<Movie[]> => {
+export const getAllFromDB = async (storeName: 'watchlist' | 'watched'): Promise<Movie[]> => {
   const db = await initDB();
-  const tx = db.transaction(STORE_NAME, 'readonly');
-  const store = tx.objectStore(STORE_NAME);
+  const tx = db.transaction(storeName, 'readonly');
+  const store = tx.objectStore(storeName);
   return new Promise((resolve) => {
     const request = store.getAll();
     request.onsuccess = () => resolve(request.result);

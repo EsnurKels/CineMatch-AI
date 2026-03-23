@@ -11,9 +11,10 @@ import { PromptSuggestions } from './components/PromptSuggestions';
 import { Footer } from './components/Footer';
 import { generateRandomPrompts } from './utils/promptGenerator';
 import type { Movie } from './types/index';
-import { BookmarkIcon } from '@heroicons/react/24/outline';
+import { BookmarkIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import MoodSelector from "./components/MoodSelector";
-import { getAllWatchlistDB, addToWatchlistDB, removeFromWatchlistDB } from './services/db';
+// DB fonksiyonlarımızı yeni yapıya göre import ediyoruz
+import { getAllFromDB, addToDB, removeFromDB } from './services/db';
 
 function App() {
   const [query, setQuery] = useState("");
@@ -22,16 +23,27 @@ function App() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [activeTab, setActiveTab] = useState<'search' | 'library'>('search');
+  
+  // İki ayrı liste için state'ler
   const [watchlist, setWatchlist] = useState<Movie[]>([]);
+  const [watched, setWatched] = useState<Movie[]>([]);
+  
+  // Filtreleme ve Kitaplık içi sekme state'leri
+  const [hideWatched, setHideWatched] = useState(false);
+  const [libraryTab, setLibraryTab] = useState<'watchlist' | 'watched'>('watchlist');
+  
   const [randomPrompts, setRandomPrompts] = useState(() => generateRandomPrompts());
   const [allMovieNames, setAllMovieNames] = useState<string[]>([]);
 
+  // İlk yüklemede her iki listeyi de çekiyoruz
   useEffect(() => {
-    const loadWatchlist = async () => {
-      const savedWatchlist = await getAllWatchlistDB();
+    const loadData = async () => {
+      const savedWatchlist = await getAllFromDB('watchlist');
+      const savedWatched = await getAllFromDB('watched');
       setWatchlist(savedWatchlist);
+      setWatched(savedWatched);
     };
-    loadWatchlist();
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -64,13 +76,10 @@ function App() {
     setActiveTab('search');
 
     try {
-      // Sadece kullanıcı cümlesini gönderiyoruz, gerisini gemini.ts hallediyor
       const names = await getMovieSuggestions(finalQuery);
-
       const uniqueNames = [...new Set(names)];
       setAllMovieNames(uniqueNames);
 
-      // İlk gösterim: Eğer 3 tane geldiyse 3 tane, çok geldiyse ilk 5 tanesini çek
       const initialShowCount = uniqueNames.length < 5 ? uniqueNames.length : 5;
       const firstBatch = uniqueNames.slice(0, initialShowCount);
 
@@ -111,14 +120,25 @@ function App() {
     }
   };
 
-  const handleToggleWatchlist = async (movie: Movie) => {
-    const exists = watchlist.find(x => x.id === movie.id);
+  // Yeni Toggle Fonksiyonu: Hangi listeye ekleneceğini storeName ile belirliyoruz
+  const handleToggleLibrary = async (movie: Movie, storeName: 'watchlist' | 'watched') => {
+    const list = storeName === 'watchlist' ? watchlist : watched;
+    const exists = list.find(x => x.id === movie.id);
+
     if (exists) {
-      await removeFromWatchlistDB(movie.id);
-      setWatchlist(prev => prev.filter(x => x.id !== movie.id));
+      await removeFromDB(movie.id, storeName);
+      if (storeName === 'watchlist') setWatchlist(prev => prev.filter(x => x.id !== movie.id));
+      else setWatched(prev => prev.filter(x => x.id !== movie.id));
     } else {
-      await addToWatchlistDB(movie);
-      setWatchlist(prev => [...prev, movie]);
+      // Eğer bir filmi 'izledim' olarak işaretliyorsak, 'izlenecekler'den otomatik silelim (Mantıklı UX)
+      if (storeName === 'watched') {
+        await removeFromDB(movie.id, 'watchlist');
+        setWatchlist(prev => prev.filter(x => x.id !== movie.id));
+      }
+      
+      await addToDB(movie, storeName);
+      if (storeName === 'watchlist') setWatchlist(prev => [...prev, movie]);
+      else setWatched(prev => [...prev, movie]);
     }
   };
 
@@ -149,23 +169,33 @@ function App() {
 
             {(movies.length > 0 || loading) && (
               <div className="mt-12">
+                {/* İzlediklerimi Gizle Filtresi */}
+                <div className="flex justify-end mb-6">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <span className={`text-[11px] font-black tracking-widest uppercase transition-colors ${hideWatched ? 'text-indigo-500' : 'text-slate-500'}`}>
+                      İzlediklerimi Gizle
+                    </span>
+                    <div className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={hideWatched} onChange={() => setHideWatched(!hideWatched)} />
+                      <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </div>
+                  </label>
+                </div>
+
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-                  {movies.map((m) => (
-                    <MovieCard key={m.id} movie={m} onClick={() => setSelectedMovie(m)} isDarkMode={isDarkMode} />
-                  ))}
+                  {movies
+                    .filter(m => hideWatched ? !watched.some(w => w.id === m.id) : true)
+                    .map((m) => (
+                      <MovieCard key={m.id} movie={m} onClick={() => setSelectedMovie(m)} isDarkMode={isDarkMode} />
+                    ))}
                   {loading && Array.from({ length: 5 }).map((_, i) => (
                     <div key={`skeleton-${i}`} className={`aspect-[2/3] rounded-[2.5rem] animate-pulse ${isDarkMode ? 'bg-slate-900' : 'bg-slate-200'}`} />
                   ))}
                 </div>
 
-                {/* Buton Zekası: Sadece daha fazla film varsa ve kullanıcı kısıtlı bir sayı istemediyse göster */}
                 {allMovieNames.length > movies.length && (
                   <div className="flex justify-center mt-12 mb-20">
-                    <button
-                      onClick={handleMore}
-                      disabled={loading}
-                      className="px-10 py-4 rounded-2xl font-black tracking-[0.3em] uppercase text-[11px] transition-all border-2 bg-transparent border-indigo-600/50 text-indigo-500 hover:border-indigo-600 hover:text-indigo-600 disabled:opacity-50 shadow-xl shadow-indigo-500/10 active:scale-95"
-                    >
+                    <button onClick={handleMore} disabled={loading} className="px-10 py-4 rounded-2xl font-black tracking-[0.3em] uppercase text-[11px] transition-all border-2 bg-transparent border-indigo-600/50 text-indigo-500 hover:border-indigo-600 hover:text-indigo-600 disabled:opacity-50 shadow-xl shadow-indigo-500/10 active:scale-95">
                       {loading ? "Sıradakiler Hazırlanıyor..." : "Daha Fazla Öner"}
                     </button>
                   </div>
@@ -174,10 +204,36 @@ function App() {
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-32">
-            <BookmarkIcon className={`w-16 h-16 mb-6 opacity-20 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-            <h2 className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Koleksiyon Çok Yakında</h2>
-            <p className="text-slate-500 text-sm mt-2 font-medium">Favori filmlerin burada listelenecek.</p>
+          <div className="py-10">
+             {/* Kitaplık Alt Sekmeleri */}
+             <div className="flex justify-center gap-8 mb-16 border-b border-white/5">
+                <button 
+                  onClick={() => setLibraryTab('watchlist')}
+                  className={`pb-4 text-xs font-black tracking-widest uppercase transition-all ${libraryTab === 'watchlist' ? 'text-indigo-500 border-b-2 border-indigo-500' : 'text-slate-500'}`}
+                >
+                  İzleyeceklerim ({watchlist.length})
+                </button>
+                <button 
+                  onClick={() => setLibraryTab('watched')}
+                  className={`pb-4 text-xs font-black tracking-widest uppercase transition-all ${libraryTab === 'watched' ? 'text-indigo-500 border-b-2 border-indigo-500' : 'text-slate-500'}`}
+                >
+                  İzlediklerim ({watched.length})
+                </button>
+             </div>
+
+             {/* Kitaplık İçeriği */}
+             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
+                {(libraryTab === 'watchlist' ? watchlist : watched).length > 0 ? (
+                  (libraryTab === 'watchlist' ? watchlist : watched).map(movie => (
+                    <MovieCard key={movie.id} movie={movie} onClick={() => setSelectedMovie(movie)} isDarkMode={isDarkMode} />
+                  ))
+                ) : (
+                  <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-30 text-center">
+                    {libraryTab === 'watchlist' ? <BookmarkIcon className="w-16 h-16 mb-4" /> : <CheckCircleIcon className="w-16 h-16 mb-4" />}
+                    <p className="text-sm font-bold tracking-widest uppercase">Burası Şimdilik Boş</p>
+                  </div>
+                )}
+             </div>
           </div>
         )}
       </main>
@@ -188,8 +244,9 @@ function App() {
           movie={selectedMovie}
           onClose={() => setSelectedMovie(null)}
           isDarkMode={isDarkMode}
-          onToggleWatchlist={handleToggleWatchlist}
+          onToggleLibrary={handleToggleLibrary}
           isInWatchlist={!!watchlist.find(m => m.id === selectedMovie.id)}
+          isWatched={!!watched.find(m => m.id === selectedMovie.id)}
         />
       )}
       <Analytics />

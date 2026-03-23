@@ -4,6 +4,21 @@ const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export const getMovieSuggestions = async (userPrompt: string) => {
+  // Test Api
+  /*
+  return [
+    "The Dark Knight", 
+    "Inception", 
+    "Interstellar", 
+    "The Prestige", 
+    "Memento", 
+    "Oppenheimer", 
+    "Dunkirk"
+  ];
+  */
+
+  // Gerçek Api
+  
   try {
     const model = genAI.getGenerativeModel({ 
       model: "gemini-3-flash-preview" 
@@ -37,4 +52,5 @@ export const getMovieSuggestions = async (userPrompt: string) => {
     console.error("Gemini Bağlantı Hatası:", errorMessage);
     return ["Inception", "Interstellar", "The Dark Knight", "The Matrix", "Gladiator"];
   }
+  
 };
